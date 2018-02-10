@@ -1,0 +1,7 @@
+<resources>
+    <string name="app_name">PKIEncryptionApp</string>
+    <string name="text_hint">Enter Text To Encrypt</string>
+    <string name="key_button">Generate Keys</string>
+    <string name="encrypt_button">Encrypt</string>
+    <string name="decrypt_button">Decrypt</string>
+</resources>
