@@ -111,6 +111,7 @@ public class ClientActivity extends AppCompatActivity {
             public void onClick(View v) {
                 try {
                     editText.setText(decryptText(privKey, byteMe ));
+                    encrypted = false;
                 } catch (InvalidKeyException e) {
                     e.printStackTrace();
                 } catch (NoSuchPaddingException e) {
