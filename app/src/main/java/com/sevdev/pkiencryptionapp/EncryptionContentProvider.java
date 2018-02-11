@@ -50,6 +50,8 @@ public class EncryptionContentProvider extends ContentProvider {
         return false;
     }
 
+    //provides a private and public key to the client in the form of a string will have to be converted back to keys
+    //when encrypting and decrypting
     @Override
     public Cursor query(Uri uri, String[] projection, String selection,
                         String[] selectionArgs, String sortOrder) {
@@ -74,6 +76,7 @@ public class EncryptionContentProvider extends ContentProvider {
         throw new UnsupportedOperationException("Not yet implemented");
     }
 
+    //using keypairgenerator to get public and private RSA keys, stores them in key pair object
     public boolean generateKeys(){
         boolean encrypted = false;
         try {

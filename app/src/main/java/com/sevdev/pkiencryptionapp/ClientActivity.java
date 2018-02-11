@@ -27,17 +27,15 @@ import javax.crypto.NoSuchPaddingException;
 
 public class ClientActivity extends AppCompatActivity {
 
-    Button genKeyButton;
-    Button decryptButton;
-    Button encryptButton;
+
     EditText editText;
-    String textToEncrypt;
     String pubKeyString;
     String privKeyString;
     PublicKey pubKey;
     PrivateKey privKey;
     boolean keysAvailable;
     byte[] byteMe;
+    boolean encrypted;
 
 
 
@@ -46,6 +44,7 @@ public class ClientActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_client);
         keysAvailable = false; // set to false if no keys generated
+        encrypted = false;
         editText = findViewById(R.id.editText);
 
         findViewById(R.id.generateKeyButton).setOnClickListener(new View.OnClickListener() {
@@ -81,10 +80,15 @@ public class ClientActivity extends AppCompatActivity {
                 else if(editText.getText().toString() == null){
                     Toast.makeText(ClientActivity.this, "Enter text to encrypt", Toast.LENGTH_SHORT).show();
                 }
+                else if (encrypted){
+                    Toast.makeText(ClientActivity.this, "Text already encrypted, press decrypt to try again",
+                            Toast.LENGTH_SHORT).show();
+                }
                 else{
                     try {
                         byteMe = encryptText(pubKey, stringToByteArray(editText.getText().toString()));
                         editText.setText(byteArrayToString(byteMe));
+                        encrypted = true;
                     } catch (NoSuchAlgorithmException e) {
                         e.printStackTrace();
                     } catch (NoSuchPaddingException e) {
@@ -123,6 +127,9 @@ public class ClientActivity extends AppCompatActivity {
 
     }
 
+    /*
+    uses the cipher object to encode the plain text from string to byte array then encrypt it with public key
+     */
     public byte[] encryptText(PublicKey key, byte[] plainText) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
         Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA1AndMGF1Padding");
         cipher.init(Cipher.ENCRYPT_MODE, key);
@@ -130,6 +137,10 @@ public class ClientActivity extends AppCompatActivity {
         return cipher.doFinal(plainText);
     }
 
+    /*
+    opposite of the encrypt method, cipher object uses the private key matched to the public key to decode the message to
+    byte array and convert it back to a string to put it plain text
+     */
     public String decryptText(PrivateKey key, byte[] encryptedText) throws InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, BadPaddingException, IllegalBlockSizeException {
         Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA1AndMGF1Padding");
         cipher.init(Cipher.DECRYPT_MODE, key);
@@ -151,6 +162,8 @@ public class ClientActivity extends AppCompatActivity {
     }
 
     public PublicKey getPubKeyFromString(String keyAsString)throws NoSuchAlgorithmException, InvalidKeySpecException {
+        //found reference for this code, the purpose is to take the key as string and convert to byte array
+        // and then use the key factory and key spec to convert back to public key
         byte[] publicBytes = Base64.decode(keyAsString, Base64.DEFAULT);
         X509EncodedKeySpec keySpec = new X509EncodedKeySpec(publicBytes);
         KeyFactory keyFactory = KeyFactory.getInstance("RSA");
