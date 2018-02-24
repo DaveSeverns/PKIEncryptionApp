@@ -1,7 +1,14 @@
 package com.sevdev.pkiencryptionapp;
 
+import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
+import android.nfc.FormatException;
+import android.nfc.NdefMessage;
+import android.nfc.NdefRecord;
+import android.nfc.NfcAdapter;
+import android.nfc.NfcEvent;
+import android.os.Parcelable;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -21,7 +28,7 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 
-public class ClientActivity extends AppCompatActivity {
+public class ClientActivity extends AppCompatActivity implements NfcAdapter.CreateNdefMessageCallback {
 
 
     EditText editText;
@@ -33,6 +40,7 @@ public class ClientActivity extends AppCompatActivity {
     byte[] byteMe;
     boolean encrypted;
     MyCrytoUtil myCrytoUtil;
+    NfcAdapter nfcAdapter;
 
 
 
@@ -45,6 +53,12 @@ public class ClientActivity extends AppCompatActivity {
         myCrytoUtil = new MyCrytoUtil(ClientActivity.this);
         editText = findViewById(R.id.editText);
 
+        nfcAdapter = NfcAdapter.getDefaultAdapter(this);
+        if (!nfcAdapter.isEnabled()) {
+            Toast.makeText(this, "Need to Enable NFC", Toast.LENGTH_SHORT).show();
+        }
+
+        nfcAdapter.setNdefPushMessageCallback(this,this);
         findViewById(R.id.generateKeyButton).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -131,5 +145,38 @@ public class ClientActivity extends AppCompatActivity {
         Log.e("private key", cursor.getString(1));
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if(NfcAdapter.ACTION_NDEF_DISCOVERED.equals(getIntent().getAction())){
+            parseIntent(getIntent());
+        }
+    }
 
+    @Override
+    public NdefMessage createNdefMessage(NfcEvent event) {
+        NdefMessage message;
+        try {
+             message = new NdefMessage(
+                    new NdefRecord(editText.getText().toString().getBytes())
+            );
+        } catch (FormatException e) {
+            message = null;
+            e.printStackTrace();
+        }
+
+        return message;
+    }
+
+    @Override
+    protected void onNewIntent(Intent intent) {
+        //super.onNewIntent(intent);
+        setIntent(intent);
+    }
+
+    public void parseIntent(Intent intent){
+        Parcelable[] raw = intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES);
+        NdefMessage ndefMessage = (NdefMessage) raw[0];
+        editText.setText(new String(ndefMessage.getRecords()[0].getPayload()));
+    }
 }
