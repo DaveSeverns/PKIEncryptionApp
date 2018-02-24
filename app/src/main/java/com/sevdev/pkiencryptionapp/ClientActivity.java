@@ -48,24 +48,7 @@ public class ClientActivity extends AppCompatActivity {
         findViewById(R.id.generateKeyButton).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Cursor cursor = getContentResolver().query(Uri.parse("content://com.sevdev.pkiencryptionapp.encryptioncontentprovider"),
-                        null,null,null,null);
-
-                cursor.moveToNext();
-                pubKeyString = cursor.getString(0);
-                privKeyString = cursor.getString(1);
-                try {
-                    pubKey = myCrytoUtil.getPubKeyFromString(pubKeyString);
-                    privKey = myCrytoUtil.getPrivKeyFromString(privKeyString);
-                } catch (NoSuchAlgorithmException e) {
-                    e.printStackTrace();
-                } catch (InvalidKeySpecException e) {
-                    e.printStackTrace();
-                }
-                Toast.makeText(ClientActivity.this, "Keys Generated", Toast.LENGTH_SHORT).show();
-                keysAvailable = true;
-                Log.e("public key", cursor.getString(0));
-                Log.e("private key", cursor.getString(1));
+                getKeys();
             }
         });
 
@@ -124,6 +107,28 @@ public class ClientActivity extends AppCompatActivity {
             }
         });
 
+    }
+
+
+    public void getKeys(){
+        Cursor cursor = getContentResolver().query(Uri.parse("content://com.sevdev.pkiencryptionapp.encryptioncontentprovider"),
+                null,null,null,null);
+
+        cursor.moveToNext();
+        pubKeyString = cursor.getString(0);
+        privKeyString = cursor.getString(1);
+        try {
+            pubKey = myCrytoUtil.getPubKeyFromString(pubKeyString);
+            privKey = myCrytoUtil.getPrivKeyFromString(privKeyString);
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (InvalidKeySpecException e) {
+            e.printStackTrace();
+        }
+        Toast.makeText(ClientActivity.this, "Keys Generated", Toast.LENGTH_SHORT).show();
+        keysAvailable = true;
+        Log.e("public key", cursor.getString(0));
+        Log.e("private key", cursor.getString(1));
     }
 
 
