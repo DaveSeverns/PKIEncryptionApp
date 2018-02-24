@@ -155,15 +155,10 @@ public class ClientActivity extends AppCompatActivity implements NfcAdapter.Crea
 
     @Override
     public NdefMessage createNdefMessage(NfcEvent event) {
+        String textToSend = editText.getText().toString();
         NdefMessage message;
-        try {
-             message = new NdefMessage(
-                    new NdefRecord(editText.getText().toString().getBytes())
-            );
-        } catch (FormatException e) {
-            message = null;
-            e.printStackTrace();
-        }
+        NdefRecord ndefRecord = NdefRecord.createMime("text/plain", textToSend.getBytes());
+        message = new NdefMessage(ndefRecord);
 
         return message;
     }
