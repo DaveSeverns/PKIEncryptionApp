@@ -205,13 +205,14 @@ public class ClientActivity extends AppCompatActivity implements NfcAdapter.Crea
     }
 
     public void parseIntent(Intent intent) throws InvalidKeySpecException, NoSuchAlgorithmException {
+
         Parcelable[] raw = intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES);
         NdefMessage ndefMessage = (NdefMessage) raw[0];
         String tag = new String(ndefMessage.getRecords()[0].getPayload());
-        Log.e("Tag: ",ndefMessage.getRecords()[0].toString() );
+        Log.e("Tag: ",new String(ndefMessage.getRecords()[1].getPayload()));
 
         if(tag.equals(KEY_SENT)){
-            Toast.makeText(this, "Key Received!", Toast.LENGTH_SHORT).show();
+            Log.e("Status: ", "Key Received!");
             pubKey = myCrytoUtil.parsePEMKeyAsStringToPublicKey(ndefMessage.getRecords()[1].toString());
         }else if(tag.equals(TEXT_SENT)) {
             editText.setText(new String(ndefMessage.getRecords()[1].getPayload()));
