@@ -18,6 +18,7 @@ import android.widget.Toast;
 
 import com.sevdev.pkiencryptionapp.Utilities.MyCrytoUtil;
 
+import java.io.IOException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.PrivateKey;
@@ -28,7 +29,7 @@ import javax.crypto.BadPaddingException;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 
-public class ClientActivity extends AppCompatActivity implements NfcAdapter.CreateNdefMessageCallback {
+public class ClientActivity extends AppCompatActivity implements NfcAdapter.CreateNdefMessageCallback, NfcAdapter.OnNdefPushCompleteCallback {
 
 
     EditText editText;
@@ -41,6 +42,9 @@ public class ClientActivity extends AppCompatActivity implements NfcAdapter.Crea
     boolean encrypted;
     MyCrytoUtil myCrytoUtil;
     NfcAdapter nfcAdapter;
+    Boolean keySentOverNfc;
+    final String KEY_SENT = "0";
+    final String TEXT_SENT = "1";
 
 
 
@@ -59,6 +63,7 @@ public class ClientActivity extends AppCompatActivity implements NfcAdapter.Crea
         }
 
         nfcAdapter.setNdefPushMessageCallback(this,this);
+        nfcAdapter.setOnNdefPushCompleteCallback(this,this);
         findViewById(R.id.generateKeyButton).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -81,7 +86,7 @@ public class ClientActivity extends AppCompatActivity implements NfcAdapter.Crea
                 }
                 else{
                     try {
-                        byteMe = myCrytoUtil.encryptText(pubKey, myCrytoUtil.stringToByteArray(editText.getText().toString()));
+                        byteMe = myCrytoUtil.encryptText(privKey, myCrytoUtil.stringToByteArray(editText.getText().toString()));
                         editText.setText(myCrytoUtil.byteArrayToString(byteMe));
                         encrypted = true;
                     } catch (NoSuchAlgorithmException e) {
@@ -105,7 +110,7 @@ public class ClientActivity extends AppCompatActivity implements NfcAdapter.Crea
             @Override
             public void onClick(View v) {
                 try {
-                    editText.setText(myCrytoUtil.decryptText(privKey, byteMe ));
+                    editText.setText(myCrytoUtil.decryptText(pubKey, byteMe ));
                     encrypted = false;
                 } catch (InvalidKeyException e) {
                     e.printStackTrace();
@@ -149,16 +154,45 @@ public class ClientActivity extends AppCompatActivity implements NfcAdapter.Crea
     protected void onResume() {
         super.onResume();
         if(NfcAdapter.ACTION_NDEF_DISCOVERED.equals(getIntent().getAction())){
-            parseIntent(getIntent());
+            try {
+                parseIntent(getIntent());
+            } catch (InvalidKeySpecException e) {
+                e.printStackTrace();
+            } catch (NoSuchAlgorithmException e) {
+                e.printStackTrace();
+            }
         }
     }
 
     @Override
     public NdefMessage createNdefMessage(NfcEvent event) {
-        String textToSend = editText.getText().toString();
+        if(!keysAvailable)
+        {
+            Toast.makeText(ClientActivity.this, "Need to generate keys", Toast.LENGTH_SHORT).show();
+            return null;
+        }
+        String textToSend;
+        NdefRecord[] records = new NdefRecord[2];
+        NdefRecord ndefRecordBody;
+        NdefRecord ndefRecordTag;
+
+        if(keySentOverNfc){
+            textToSend = editText.getText().toString();
+            records[0] = NdefRecord.createMime("text/plain", TEXT_SENT.getBytes());
+        }else{
+            try {
+                textToSend = myCrytoUtil.publicKeyToPEMFile(pubKey);
+
+            } catch (IOException e) {
+                e.printStackTrace();
+                textToSend = "Generate keys to send encrypted text";
+            }
+            records[0] = NdefRecord.createMime("text/plain", KEY_SENT.getBytes());
+        }
         NdefMessage message;
-        NdefRecord ndefRecord = NdefRecord.createMime("text/plain", textToSend.getBytes());
-        message = new NdefMessage(ndefRecord);
+        ndefRecordBody = NdefRecord.createMime("text/plain", textToSend.getBytes());
+        records[1] = ndefRecordBody;
+        message = new NdefMessage(records);
 
         return message;
     }
@@ -169,9 +203,25 @@ public class ClientActivity extends AppCompatActivity implements NfcAdapter.Crea
         setIntent(intent);
     }
 
-    public void parseIntent(Intent intent){
+    public void parseIntent(Intent intent) throws InvalidKeySpecException, NoSuchAlgorithmException {
         Parcelable[] raw = intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES);
         NdefMessage ndefMessage = (NdefMessage) raw[0];
-        editText.setText(new String(ndefMessage.getRecords()[0].getPayload()));
+        Log.e("Tag: ",ndefMessage.getRecords()[0].toString() );
+
+        if(ndefMessage.getRecords()[0].toString().equals(KEY_SENT)){
+            Toast.makeText(this, "Key Received!", Toast.LENGTH_SHORT).show();
+            pubKey = myCrytoUtil.parsePEMKeyAsStringToPublicKey(ndefMessage.getRecords()[1].toString());
+        }else {
+            editText.setText(new String(ndefMessage.getRecords()[1].getPayload()));
+            encrypted = true;
+        }
+
+    }
+
+    @Override
+    public void onNdefPushComplete(NfcEvent event) {
+        if(!keySentOverNfc){
+            keySentOverNfc = true;
+        }
     }
 }

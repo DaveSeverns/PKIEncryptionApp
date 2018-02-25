@@ -4,6 +4,8 @@ import android.content.Context;
 import android.util.Base64;
 import android.widget.Toast;
 
+import java.io.IOException;
+import java.io.StringWriter;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
@@ -12,6 +14,8 @@ import java.security.PublicKey;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
+import org.spongycastle.openssl.jcajce.JcaPEMWriter;
+
 
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
@@ -31,7 +35,7 @@ public class MyCrytoUtil {
     /*
     uses the cipher object to encode the plain text from string to byte array then encrypt it with public key
      */
-    public byte[] encryptText(PublicKey key, byte[] plainText) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
+    public byte[] encryptText(PrivateKey key, byte[] plainText) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
         Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA1AndMGF1Padding");
         cipher.init(Cipher.ENCRYPT_MODE, key);
         Toast.makeText(context, "Text Encrypted", Toast.LENGTH_SHORT).show();
@@ -42,7 +46,7 @@ public class MyCrytoUtil {
     opposite of the encrypt method, cipher object uses the private key matched to the public key to decode the message to
     byte array and convert it back to a string to put it plain text
      */
-    public String decryptText(PrivateKey key, byte[] encryptedText) throws InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, BadPaddingException, IllegalBlockSizeException {
+    public String decryptText(PublicKey key, byte[] encryptedText) throws InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, BadPaddingException, IllegalBlockSizeException {
         Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA1AndMGF1Padding");
         cipher.init(Cipher.DECRYPT_MODE, key);
         Toast.makeText(context, "Text Decrypted", Toast.LENGTH_SHORT).show();
@@ -65,7 +69,7 @@ public class MyCrytoUtil {
     public PublicKey getPubKeyFromString(String keyAsString)throws NoSuchAlgorithmException, InvalidKeySpecException {
         //found reference for this code, the purpose is to take the key as string and convert to byte array
         // and then use the key factory and key spec to convert back to public key
-        byte[] publicBytes = Base64.decode(keyAsString, Base64.DEFAULT);
+        byte[] publicBytes = android.util.Base64.decode(keyAsString, android.util.Base64.DEFAULT);
         X509EncodedKeySpec keySpec = new X509EncodedKeySpec(publicBytes);
         KeyFactory keyFactory = KeyFactory.getInstance("RSA");
         PublicKey pubKey = keyFactory.generatePublic(keySpec);
@@ -73,11 +77,32 @@ public class MyCrytoUtil {
     }
 
     public PrivateKey getPrivKeyFromString(String keyAsString)throws NoSuchAlgorithmException, InvalidKeySpecException{
-        byte[] publicBytes = Base64.decode(keyAsString, Base64.DEFAULT);
+        byte[] publicBytes = android.util.Base64.decode(keyAsString, android.util.Base64.DEFAULT);
         PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(publicBytes);
         KeyFactory keyFactory = KeyFactory.getInstance("RSA");
         PrivateKey privKey = keyFactory.generatePrivate(keySpec);
         return privKey;
+    }
+
+    public String publicKeyToPEMFile(PublicKey pk) throws IOException {
+        StringWriter writer = new StringWriter();
+        JcaPEMWriter pemWriter = new JcaPEMWriter(writer);
+        pemWriter.writeObject(pk);
+        pemWriter.close();
+        return writer.toString();
+    }
+
+    /**
+     * This method takes the public key in the .pem format,
+     * removes the header and footer and returns it back as Public Key
+     * @param pemString
+     * @return
+     */
+    public PublicKey parsePEMKeyAsStringToPublicKey(String pemString)throws NoSuchAlgorithmException,InvalidKeySpecException{
+        String tempKeyString = pemString.replace("-----BEGIN PUBLIC KEY-----\\n","");
+        tempKeyString = pemString.replace("-----END PUBLIC KEY-----\n","");
+        PublicKey tempKey = getPubKeyFromString(tempKeyString);
+        return tempKey;
     }
 
 }
