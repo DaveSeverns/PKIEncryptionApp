@@ -54,6 +54,7 @@ public class ClientActivity extends AppCompatActivity implements NfcAdapter.Crea
         setContentView(R.layout.activity_client);
         keysAvailable = false; // set to false if no keys generated
         encrypted = false;
+        keySentOverNfc = false;
         myCrytoUtil = new MyCrytoUtil(ClientActivity.this);
         editText = findViewById(R.id.editText);
 
@@ -174,7 +175,7 @@ public class ClientActivity extends AppCompatActivity implements NfcAdapter.Crea
         String textToSend;
         NdefRecord[] records = new NdefRecord[2];
         NdefRecord ndefRecordBody;
-        NdefRecord ndefRecordTag;
+
 
         if(keySentOverNfc){
             textToSend = editText.getText().toString();
@@ -206,14 +207,17 @@ public class ClientActivity extends AppCompatActivity implements NfcAdapter.Crea
     public void parseIntent(Intent intent) throws InvalidKeySpecException, NoSuchAlgorithmException {
         Parcelable[] raw = intent.getParcelableArrayExtra(NfcAdapter.EXTRA_NDEF_MESSAGES);
         NdefMessage ndefMessage = (NdefMessage) raw[0];
+        String tag = new String(ndefMessage.getRecords()[0].getPayload());
         Log.e("Tag: ",ndefMessage.getRecords()[0].toString() );
 
-        if(ndefMessage.getRecords()[0].toString().equals(KEY_SENT)){
+        if(tag.equals(KEY_SENT)){
             Toast.makeText(this, "Key Received!", Toast.LENGTH_SHORT).show();
             pubKey = myCrytoUtil.parsePEMKeyAsStringToPublicKey(ndefMessage.getRecords()[1].toString());
-        }else {
+        }else if(tag.equals(TEXT_SENT)) {
             editText.setText(new String(ndefMessage.getRecords()[1].getPayload()));
             encrypted = true;
+        }else{
+            Toast.makeText(this, "Houston We Have a Problem", Toast.LENGTH_SHORT).show();
         }
 
     }
