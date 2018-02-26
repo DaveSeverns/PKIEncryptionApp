@@ -6,6 +6,10 @@ import android.nfc.NfcAdapter;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 
+/**
+ * Never Used
+ */
+
 public class ReadActivity extends AppCompatActivity {
 
     PendingIntent pendingIntent;

@@ -15,9 +15,10 @@ import android.util.Base64;
 import android.util.Log;
 import android.view.View;
 import android.widget.EditText;
+import android.widget.TextView;
 import android.widget.Toast;
 
-import com.sevdev.pkiencryptionapp.Utilities.IOhelper;
+
 import com.sevdev.pkiencryptionapp.Utilities.MyCrytoUtil;
 
 import java.io.IOException;
@@ -49,7 +50,9 @@ public class ClientActivity extends AppCompatActivity implements NfcAdapter.Crea
     private final String KEY_SENT = "0";
     private final String TEXT_SENT = "1";
     private final String KEY_TAG = "PublicKey";
-    IOhelper iOhelper;
+
+
+    TextView textView;
 
 
 
@@ -61,7 +64,8 @@ public class ClientActivity extends AppCompatActivity implements NfcAdapter.Crea
         encrypted = false;
         keySentOverNfc = false;
         myCrytoUtil = new MyCrytoUtil(ClientActivity.this);
-        iOhelper = new IOhelper(this);
+
+        textView = findViewById(R.id.EncryptedText);
 
         editText = findViewById(R.id.editText);
 
@@ -95,11 +99,10 @@ public class ClientActivity extends AppCompatActivity implements NfcAdapter.Crea
                 else{
                     try {
                         byteMe = myCrytoUtil.encryptText(privKey, myCrytoUtil.stringToByteArray(editText.getText().toString()));
-                        try {
-                            editText.setText(myCrytoUtil.byteArrayToString(byteMe));
-                        } catch (UnsupportedEncodingException e) {
-                            e.printStackTrace();
-                        }
+                        textView.setText(byteMe.toString());
+
+                        editText.setText(byteMe.toString());
+
                         encrypted = true;
                     } catch (NoSuchAlgorithmException e) {
                         e.printStackTrace();
@@ -155,7 +158,7 @@ public class ClientActivity extends AppCompatActivity implements NfcAdapter.Crea
         privKeyString = cursor.getString(1);
         try {
             pubKey = myCrytoUtil.getPubKeyFromString(pubKeyString);
-            //iOhelper.saveKeyToFile(pubKey);
+
             privKey = myCrytoUtil.getPrivKeyFromString(privKeyString);
         } catch (NoSuchAlgorithmException e) {
             e.printStackTrace();
@@ -195,8 +198,9 @@ public class ClientActivity extends AppCompatActivity implements NfcAdapter.Crea
 
 
         if(keySentOverNfc){
-            textToSend = editText.getText().toString();
+
             records[0] = NdefRecord.createMime("text/plain", TEXT_SENT.getBytes());
+            records[1] = NdefRecord.createMime("text/plain",byteMe);
         }else{
             try {
                 textToSend = myCrytoUtil.publicKeyToPEMFile(pubKey);
@@ -206,10 +210,12 @@ public class ClientActivity extends AppCompatActivity implements NfcAdapter.Crea
                 textToSend = "Generate keys to send encrypted text";
             }
             records[0] = NdefRecord.createMime("text/plain", KEY_SENT.getBytes());
+            ndefRecordBody = NdefRecord.createMime("text/plain", textToSend.getBytes());
+            records[1] = ndefRecordBody;
         }
         NdefMessage message;
-        ndefRecordBody = NdefRecord.createMime("text/plain", textToSend.getBytes());
-        records[1] = ndefRecordBody;
+
+
         message = new NdefMessage(records);
 
         return message;
@@ -236,9 +242,9 @@ public class ClientActivity extends AppCompatActivity implements NfcAdapter.Crea
             Log.e("Status: ", "Key Received!");
         }else if(tag.equals(TEXT_SENT)) {
             try {
-                String tempString = ndefMessage.getRecords()[1].getPayload().toString();
-                String setString = myCrytoUtil.decryptText(pubKey,tempString.getBytes());
-                editText.setText(setString);
+
+
+                editText.setText(myCrytoUtil.decryptText(pubKey, ndefMessage.getRecords()[1].getPayload()));
             } catch (InvalidKeyException e) {
                 e.printStackTrace();
             } catch (NoSuchPaddingException e) {
