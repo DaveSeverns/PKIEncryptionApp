@@ -6,6 +6,7 @@ import android.widget.Toast;
 
 import java.io.IOException;
 import java.io.StringWriter;
+import java.io.UnsupportedEncodingException;
 import java.security.InvalidKeyException;
 import java.security.KeyFactory;
 import java.security.NoSuchAlgorithmException;
@@ -28,6 +29,8 @@ import javax.crypto.NoSuchPaddingException;
 
 public class MyCrytoUtil {
     Context context;
+    Cipher cipher;
+    Cipher cipher2;
 
     public MyCrytoUtil(Context context){
         this.context = context;
@@ -36,18 +39,18 @@ public class MyCrytoUtil {
     uses the cipher object to encode the plain text from string to byte array then encrypt it with public key
      */
     public byte[] encryptText(PrivateKey key, byte[] plainText) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException {
-        Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA1AndMGF1Padding");
-        cipher.init(Cipher.ENCRYPT_MODE, key);
+        cipher2 = Cipher.getInstance("RSA");
+        cipher2.init(Cipher.ENCRYPT_MODE, key);
         Toast.makeText(context, "Text Encrypted", Toast.LENGTH_SHORT).show();
-        return cipher.doFinal(plainText);
+        return cipher2.doFinal(plainText);
     }
 
     /*
     opposite of the encrypt method, cipher object uses the private key matched to the public key to decode the message to
     byte array and convert it back to a string to put it plain text
      */
-    public String decryptText(PublicKey key, byte[] encryptedText) throws InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, BadPaddingException, IllegalBlockSizeException {
-        Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA1AndMGF1Padding");
+    public String decryptText(PublicKey key, byte[] encryptedText) throws InvalidKeyException, NoSuchPaddingException, NoSuchAlgorithmException, BadPaddingException, IllegalBlockSizeException, UnsupportedEncodingException {
+        cipher = Cipher.getInstance("RSA");
         cipher.init(Cipher.DECRYPT_MODE, key);
         Toast.makeText(context, "Text Decrypted", Toast.LENGTH_SHORT).show();
         return byteArrayToString(cipher.doFinal(encryptedText));
@@ -61,7 +64,7 @@ public class MyCrytoUtil {
     }
 
     //get string back from byte array
-    public String byteArrayToString(byte[] array){
+    public String byteArrayToString(byte[] array) throws UnsupportedEncodingException {
         String string = new String(array);
         return string;
     }
@@ -98,11 +101,11 @@ public class MyCrytoUtil {
      * @param pemString
      * @return
      */
-    public PublicKey parsePEMKeyAsStringToPublicKey(String pemString)throws NoSuchAlgorithmException,InvalidKeySpecException{
-        String tempKeyString = pemString.replace("-----BEGIN PUBLIC KEY-----\\n","");
-        tempKeyString = pemString.replace("-----END PUBLIC KEY-----\n","");
-        PublicKey tempKey = getPubKeyFromString(tempKeyString);
-        return tempKey;
+    public String parsePEMKeyAsStringToPublicKey(String pemString)throws NoSuchAlgorithmException,InvalidKeySpecException{
+        String tempKeyString = pemString.replace("-----BEGIN PUBLIC KEY-----\n","");
+        tempKeyString = tempKeyString.replace("-----END PUBLIC KEY-----\n","");
+
+        return tempKeyString;
     }
 
 }
